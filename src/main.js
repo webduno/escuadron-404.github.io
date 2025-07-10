@@ -2995,13 +2995,13 @@ function onDocumentLoad() {
 			}
 
 			// 3. Remove the initial listener
-			document.removeEventListener("keydown", handleSpaceKeyPress);
+			document.removeEventListener("keyup", handleSpaceKeyPress);
 			console.log("Listener removed.");
 		}
 	}
 
 	// Attach the listener to the document
-	document.addEventListener("keydown", handleSpaceKeyPress);
+	document.addEventListener("keyup", handleSpaceKeyPress);
 	console.log("Space key listener attached.");
 }
 
