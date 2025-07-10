@@ -2955,7 +2955,54 @@
 var HIDDEN_CLASS = "hidden";
 
 function onDocumentLoad() {
-	new Runner(".interstitial-wrapper");
+	// Function to handle the space key press
+	function handleSpaceKeyPress(event) {
+		// Check if the pressed key is the space bar
+		if (event.code === "Space") {
+			// Prevent default space bar behavior (e.g., scrolling)
+			event.preventDefault();
+
+			// 1. Instantiate the Runner
+			const runnerInstance = new Runner(".interstitial-wrapper");
+			// Assuming the Runner's constructor or a method like 'start'
+			// is responsible for initiating the game. If the game
+			// *also* starts with space, and the Runner's constructor
+			// already handles this, then we might not need to do anything else.
+			// If the Runner needs an explicit 'start' call, you'd do:
+			// runnerInstance.start(); // Uncomment if Runner needs explicit start() call
+
+			console.log("Dispatching programmatic space key event...");
+			const spaceEvent = new KeyboardEvent("keydown", {
+				key: " ",
+				code: "Space",
+				keyCode: 32, // Standard keyCode for space
+				which: 32, // Standard which for space
+				bubbles: true, // Important for event propagation
+				cancelable: true, // Important for preventDefault
+			});
+			document.dispatchEvent(spaceEvent);
+			console.log("Programmatic space key event dispatched.");
+
+			// 2. Remove "#text-help" from the DOM
+			// TODO: find out why the id selector doesn't work
+			const textHelpElement = document.querySelector("p");
+			if (textHelpElement) {
+				console.log("Removing #text-help element...");
+				textHelpElement.remove();
+				console.log("#text-help removed.");
+			} else {
+				console.log("#text-help element not found to remove.");
+			}
+
+			// 3. Remove the initial listener
+			document.removeEventListener("keydown", handleSpaceKeyPress);
+			console.log("Listener removed.");
+		}
+	}
+
+	// Attach the listener to the document
+	document.addEventListener("keydown", handleSpaceKeyPress);
+	console.log("Space key listener attached.");
 }
 
 document.addEventListener("DOMContentLoaded", onDocumentLoad);

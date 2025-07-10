@@ -13,6 +13,8 @@ body {
 	background-color: #fff;
 	color: var(--google-gray-700);
 	word-wrap: break-word;
+	height: 100dvh;
+	margin: 0;
 }
 
 html {
@@ -563,28 +565,55 @@ html[subframe] body {
 	text-align: center;
 }
 
-#main-content > h1 {
+#main-content > #brand {
+	--border-width: 0.5rem;
 	font-weight: 900;
-	font-size: 10rem;
+	font-size: 12rem;
 	user-select: none;
+	border-top: var(--border-width) solid;
+	border-bottom: var(--border-width) solid;
+	line-height: 11rem;
+	width: fit-content;
+	margin-right: auto;
+	margin-left: auto;
 }
 
-.inverted > #discord-link > svg {
-	stroke: #333;
+#discord-link > svg {
+	stroke: #fff;
+	fill: #fff;
 }
+
 .inverted > #discord-link {
-	color: black;
+	-webkit-filter: invert(100%);
+	filter: invert(100%);
 }
 
 #discord-link {
 	display: flex;
 	gap: 0.5rem;
-	background-color: #5865f2;
+	background-color: oklch(0.5774 0.2091 273.85);
 	border-radius: 0.75rem;
 	position: absolute;
 	right: 20dvw;
 	top: 5dvh;
 	color: white;
 	font-weight: 700;
-	padding: 0.5rem;
+	padding: 0.6rem;
+	padding-top: 0.65rem;
+}
+
+#discord-link:hover {
+	background-color: oklch(0.3774 0.2091 273.85);
+}
+
+#help-text {
+	font-size: 1rem;
+	color: #333;
+	margin-top: 4rem;
+}
+
+.inverted > .interstitial-wrapper > #main-content > #help-text {
+	color: #fff;
+	-webkit-filter: invert(100%);
+	filter: invert(100%);
 }
