@@ -282,29 +282,34 @@
 			}
 		},
 
-		/**
-		 * Cache the appropriate image sprite from the page and get the sprite sheet
-		 * definition.
-		 */
-		loadImages: function () {
-			if (IS_HIDPI) {
-				Runner.imageSprite = document.getElementById("offline-resources-2x");
-				this.spriteDef = Runner.spriteDefinition.HDPI;
-			} else {
-				Runner.imageSprite = document.getElementById("offline-resources-1x");
-				this.spriteDef = Runner.spriteDefinition.LDPI;
-			}
+			/**
+	 * Cache the appropriate image sprite from the page and get the sprite sheet
+	 * definition.
+	 */
+	loadImages: function () {
+		// Load guac.png as the main sprite
+		this.guacSprite = new Image();
+		this.guacSprite.src = "/guac.png";
+		
+		// Keep the original sprite for fallback and other elements
+		if (IS_HIDPI) {
+			Runner.imageSprite = document.getElementById("offline-resources-2x");
+			this.spriteDef = Runner.spriteDefinition.HDPI;
+		} else {
+			Runner.imageSprite = document.getElementById("offline-resources-1x");
+			this.spriteDef = Runner.spriteDefinition.LDPI;
+		}
 
-			if (Runner.imageSprite.complete) {
-				this.init();
-			} else {
-				// If the images are not yet loaded, add a listener.
-				Runner.imageSprite.addEventListener(
-					Runner.events.LOAD,
-					this.init.bind(this),
-				);
-			}
-		},
+		// Wait for guac sprite to load
+		if (this.guacSprite.complete) {
+			this.init();
+		} else {
+			this.guacSprite.addEventListener(
+				Runner.events.LOAD,
+				this.init.bind(this),
+			);
+		}
+	},
 
 		/**
 		 * Load and decode base 64 encoded sounds.
@@ -631,6 +636,13 @@
 				if (playAchievementSound) {
 					this.playSound(this.soundFx.SCORE);
 				}
+				
+				// Check if score reached threshold to become dinosaur
+				var currentScore = this.distanceMeter.getActualDistance(Math.ceil(this.distanceRan));
+				if (currentScore >= this.tRex.dinosaurThreshold && !this.tRex.isDinosaur) {
+					this.tRex.isDinosaur = true;
+					console.log("Transformed to dinosaur at score:", currentScore);
+				}
 
 				// Night mode.
 				if (this.invertTimer > this.config.INVERT_FADE_DURATION) {
@@ -912,6 +924,8 @@
 				this.distanceMeter.reset(this.highestScore);
 				this.horizon.reset();
 				this.tRex.reset();
+				// Reset dinosaur state
+				this.tRex.isDinosaur = false;
 				this.playSound(this.soundFx.BUTTON_PRESS);
 				this.invert(true);
 				this.bdayFlashTimer = null;
@@ -1682,6 +1696,10 @@
 		this.speedDrop = false;
 		this.jumpCount = 0;
 		this.jumpspotX = 0;
+		
+		// Character state (guac or dinosaur)
+		this.isDinosaur = false;
+		this.dinosaurThreshold = 333; // Score threshold to become dinosaur
 
 		this.init();
 	}
@@ -1849,56 +1867,98 @@
 		 * @param {number} y
 		 */
 		draw: function (x, y) {
-			var sourceX = x;
-			var sourceY = y;
-			var sourceWidth =
-				this.ducking && this.status != Trex.status.CRASHED
-					? this.config.WIDTH_DUCK
-					: this.config.WIDTH;
-			var sourceHeight = this.config.HEIGHT;
-			var outputHeight = sourceHeight;
+			// Use guac sprite for drawing
+			var spriteToUse = this.isDinosaur ? Runner.imageSprite : Runner.instance_.guacSprite;
+			
+			if (this.isDinosaur) {
+				// Use original sprite sheet for dinosaur
+				var sourceX = x;
+				var sourceY = y;
+				var sourceWidth =
+					this.ducking && this.status != Trex.status.CRASHED
+						? this.config.WIDTH_DUCK
+						: this.config.WIDTH;
+				var sourceHeight = this.config.HEIGHT;
+				var outputHeight = sourceHeight;
 
-			if (IS_HIDPI) {
-				sourceX *= 2;
-				sourceY *= 2;
-				sourceWidth *= 2;
-				sourceHeight *= 2;
-			}
-
-			// Adjustments for sprite sheet position.
-			sourceX += this.spritePos.x;
-			sourceY += this.spritePos.y;
-
-			// Ducking.
-			if (this.ducking && this.status != Trex.status.CRASHED) {
-				this.canvasCtx.drawImage(
-					Runner.imageSprite,
-					sourceX,
-					sourceY,
-					sourceWidth,
-					sourceHeight,
-					this.xPos,
-					this.yPos,
-					this.config.WIDTH_DUCK,
-					outputHeight,
-				);
-			} else {
-				// Crashed whilst ducking. Trex is standing up so needs adjustment.
-				if (this.ducking && this.status == Trex.status.CRASHED) {
-					this.xPos++;
+				if (IS_HIDPI) {
+					sourceX *= 2;
+					sourceY *= 2;
+					sourceWidth *= 2;
+					sourceHeight *= 2;
 				}
-				// Standing / running
-				this.canvasCtx.drawImage(
-					Runner.imageSprite,
-					sourceX,
-					sourceY,
-					sourceWidth,
-					sourceHeight,
-					this.xPos,
-					this.yPos,
-					this.config.WIDTH,
-					outputHeight,
-				);
+
+				// Adjustments for sprite sheet position.
+				sourceX += this.spritePos.x;
+				sourceY += this.spritePos.y;
+
+				// Ducking.
+				if (this.ducking && this.status != Trex.status.CRASHED) {
+					this.canvasCtx.drawImage(
+						spriteToUse,
+						sourceX,
+						sourceY,
+						sourceWidth,
+						sourceHeight,
+						this.xPos,
+						this.yPos,
+						this.config.WIDTH_DUCK,
+						outputHeight,
+					);
+				} else {
+					// Crashed whilst ducking. Trex is standing up so needs adjustment.
+					if (this.ducking && this.status == Trex.status.CRASHED) {
+						this.xPos++;
+					}
+					// Standing / running
+					this.canvasCtx.drawImage(
+						spriteToUse,
+						sourceX,
+						sourceY,
+						sourceWidth,
+						sourceHeight,
+						this.xPos,
+						this.yPos,
+						this.config.WIDTH,
+						outputHeight,
+					);
+				}
+			} else {
+				// Use guac sprite (single image, not sprite sheet)
+				var guacWidth = 44; // Approximate width for guac
+				var guacHeight = 47; // Approximate height for guac
+				
+				// Ducking.
+				if (this.ducking && this.status != Trex.status.CRASHED) {
+					this.canvasCtx.drawImage(
+						spriteToUse,
+						0,
+						0,
+						spriteToUse.width,
+						spriteToUse.height,
+						this.xPos,
+						this.yPos,
+						this.config.WIDTH_DUCK,
+						guacHeight,
+					);
+				} else {
+					// Crashed whilst ducking. Trex is standing up so needs adjustment.
+					if (this.ducking && this.status == Trex.status.CRASHED) {
+						this.xPos++;
+					}
+					// Standing / running
+					this.canvasCtx.drawImage(
+						spriteToUse,
+						0,
+						0,
+						spriteToUse.width,
+						spriteToUse.height,
+						this.xPos,
+						this.yPos,
+						this.config.WIDTH,
+						guacHeight,
+					);
+				}
 			}
 			this.canvasCtx.globalAlpha = 1;
 		},
