@@ -630,6 +630,28 @@ html[subframe] body {
 	filter: invert(100%);
 }
 
+/* Mobile-specific touch improvements */
+@media (max-width: 768px) {
+	#help-text {
+		font-size: 1.1rem;
+		margin-top: 1.5rem;
+	}
+	
+	#action-key {
+		padding: 4px 8px;
+		font-size: 0.9rem;
+	}
+	
+	/* Ensure touch targets are large enough */
+	.interstitial-wrapper {
+		touch-action: manipulation;
+	}
+	
+	.runner-container {
+		touch-action: manipulation;
+	}
+}
+
 .icon.icon-offline{
 	height: 1px;
 	

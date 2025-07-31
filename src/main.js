@@ -2,6 +2,32 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 // Extract source code from Chromium by congerh.
+
+function updateHelpTextForMobile() {
+	const actionKey = document.getElementById('action-key');
+	const helpText = document.getElementById('help-text');
+	
+	if (actionKey && helpText) {
+		const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+						('ontouchstart' in window) || 
+						(navigator.maxTouchPoints > 0);
+		
+		if (isMobile) {
+			actionKey.textContent = 'TOCA';
+			// Replace the entire text content to avoid "toca TOCA"
+			helpText.innerHTML = 'Por ahora, toca <kbd id="action-key">AQUÍ</kbd> para jugar 🤣';
+			console.log('Mobile device detected - text updated to "AQUÍ"');
+		} else {
+			actionKey.textContent = 'ESPACIO';
+			// Replace the entire text content to avoid "presiona ESPACIO"
+			helpText.innerHTML = 'Por ahora, presiona <kbd id="action-key">ESPACIO</kbd> para jugar 🤣';
+			console.log('Desktop device detected - text set to "ESPACIO"');
+		}
+	}
+}
+
+document.addEventListener('DOMContentLoaded', updateHelpTextForMobile);
+
 (function () {
 	"use strict";
 	/**
@@ -709,6 +735,7 @@
 
 			// Touch / pointer.
 			this.containerEl.addEventListener(Runner.events.TOUCHSTART, this);
+			this.containerEl.addEventListener(Runner.events.TOUCHEND, this);
 			document.addEventListener(Runner.events.POINTERDOWN, this);
 			document.addEventListener(Runner.events.POINTERUP, this);
 		},
@@ -729,6 +756,7 @@
 			}
 
 			this.containerEl.removeEventListener(Runner.events.TOUCHSTART, this);
+			this.containerEl.removeEventListener(Runner.events.TOUCHEND, this);
 			document.removeEventListener(Runner.events.POINTERDOWN, this);
 			document.removeEventListener(Runner.events.POINTERUP, this);
 		},
@@ -747,13 +775,14 @@
 				if (!this.crashed && !this.paused) {
 					if (
 						Runner.keycodes.JUMP[e.keyCode] ||
-						e.type == Runner.events.TOUCHSTART
+						e.type == Runner.events.TOUCHSTART ||
+						e.type == Runner.events.POINTERDOWN
 					) {
 						e.preventDefault();
 						// Starting the game for the first time.
 						if (!this.playing) {
 							// Started by touch so create a touch controller.
-							if (!this.touchController && e.type == Runner.events.TOUCHSTART) {
+							if (!this.touchController && (e.type == Runner.events.TOUCHSTART || e.type == Runner.events.POINTERDOWN)) {
 								this.createTouchController();
 							}
 							this.loadSounds();
@@ -780,7 +809,7 @@
 					}
 				} else if (
 					this.crashed &&
-					e.type == Runner.events.TOUCHSTART &&
+					(e.type == Runner.events.TOUCHSTART || e.type == Runner.events.POINTERDOWN) &&
 					e.currentTarget == this.containerEl
 				) {
 					this.restart();
@@ -813,7 +842,7 @@
 					(Runner.keycodes.RESTART[keyCode] ||
 						this.isLeftClickOnCanvas(e) ||
 						(deltaTime >= this.config.GAMEOVER_CLEAR_TIME &&
-							Runner.keycodes.JUMP[keyCode]))
+							(Runner.keycodes.JUMP[keyCode] || e.type == Runner.events.TOUCHEND || e.type == Runner.events.POINTERUP)))
 				) {
 					this.restart();
 				}
@@ -3015,54 +3044,67 @@
 var HIDDEN_CLASS = "hidden";
 
 function onDocumentLoad() {
-	// Function to handle the space key press
-	function handleSpaceKeyPress(event) {
-		// Check if the pressed key is the space bar
-		if (event.code === "Space") {
-			// Prevent default space bar behavior (e.g., scrolling)
+	// Function to handle the space key press and touch events
+	function handleGameStart(event) {
+		// Check if the pressed key is the space bar or if it's a touch event
+		const isSpaceKey = event.code === "Space";
+		const isTouchEvent = event.type === "touchstart" || event.type === "pointerdown";
+		
+		if (isSpaceKey || isTouchEvent) {
+			// Prevent default behavior (e.g., scrolling)
 			event.preventDefault();
 
 			// 1. Instantiate the Runner
 			const runnerInstance = new Runner(".interstitial-wrapper");
-			// Assuming the Runner's constructor or a method like 'start'
-			// is responsible for initiating the game. If the game
-			// *also* starts with space, and the Runner's constructor
-			// already handles this, then we might not need to do anything else.
-			// If the Runner needs an explicit 'start' call, you'd do:
-			// runnerInstance.start(); // Uncomment if Runner needs explicit start() call
 
-			console.log("Dispatching programmatic space key event...");
-			const spaceEvent = new KeyboardEvent("keydown", {
-				key: " ",
-				code: "Space",
-				keyCode: 32, // Standard keyCode for space
-				which: 32, // Standard which for space
-				bubbles: true, // Important for event propagation
-				cancelable: true, // Important for preventDefault
-			});
-			document.dispatchEvent(spaceEvent);
-			console.log("Programmatic space key event dispatched.");
+			console.log("Dispatching programmatic game start event...");
+			
+			if (isSpaceKey) {
+				// For space key, dispatch a keyboard event
+				const spaceEvent = new KeyboardEvent("keydown", {
+					key: " ",
+					code: "Space",
+					keyCode: 32, // Standard keyCode for space
+					which: 32, // Standard which for space
+					bubbles: true, // Important for event propagation
+					cancelable: true, // Important for preventDefault
+				});
+				document.dispatchEvent(spaceEvent);
+			} else {
+				// For touch events, dispatch a touch event
+				const touchEvent = new TouchEvent("touchstart", {
+					bubbles: true,
+					cancelable: true,
+					touches: event.touches || []
+				});
+				document.dispatchEvent(touchEvent);
+			}
+			
+			console.log("Programmatic game start event dispatched.");
 
-			// 2. Remove "#text-help" from the DOM
-			// TODO: find out why the id selector doesn't work
+			// 2. Remove the help text from the DOM
 			const textHelpElement = document.querySelector("p");
 			if (textHelpElement) {
-				console.log("Removing #text-help element...");
+				console.log("Removing help text element...");
 				textHelpElement.remove();
-				console.log("#text-help removed.");
+				console.log("Help text removed.");
 			} else {
-				console.log("#text-help element not found to remove.");
+				console.log("Help text element not found to remove.");
 			}
 
-			// 3. Remove the initial listener
-			document.removeEventListener("keyup", handleSpaceKeyPress);
-			console.log("Listener removed.");
+			// 3. Remove the initial listeners
+			document.removeEventListener("keyup", handleGameStart);
+			document.removeEventListener("touchstart", handleGameStart);
+			document.removeEventListener("pointerdown", handleGameStart);
+			console.log("Listeners removed.");
 		}
 	}
 
-	// Attach the listener to the document
-	document.addEventListener("keyup", handleSpaceKeyPress);
-	console.log("Space key listener attached.");
+	// Attach the listeners to the document
+	document.addEventListener("keyup", handleGameStart);
+	document.addEventListener("touchstart", handleGameStart);
+	document.addEventListener("pointerdown", handleGameStart);
+	console.log("Game start listeners attached.");
 }
 
 document.addEventListener("DOMContentLoaded", onDocumentLoad);
