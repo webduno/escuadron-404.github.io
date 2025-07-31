@@ -577,7 +577,7 @@ html[subframe] body {
 	@media screen and (max-width: 768px) {
 		font-size: 8rem;
 		line-height: 7rem;
-		border-width: 0.25rem;
+		border-width: 0.25rem; 
 
 	}
 }
